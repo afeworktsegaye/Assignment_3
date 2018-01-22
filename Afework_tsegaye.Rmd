@@ -1,0 +1,307 @@
+---
+title: "R-Assignment three"
+author: "Afework Tsegaye"
+date: ""
+output: 
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 3
+    fig_width: 5
+---
+
+```{r, setup, include=FALSE}
+require(mosaic)    
+
+trellis.par.set(theme=theme.mosaic()) 
+knitr::opts_chunk$set(
+  tidy=FALSE,     
+  size="small") 
+```
+
+```{r}
+library(ggplot2)
+library(broom)
+library(dplyr)
+library(pipeliner)
+library(forcats)
+library(stringr)
+library(foreign)
+library(stargazer)
+```
+#### Reading data
+```{r }
+
+getwd()
+setwd("/Users/afework/Desktop/Assignment_3")
+spss_orphan_children_data <- read.spss("spss_orphan_children_data.sav", to.data.frame = TRUE, use.value.labels = TRUE,use.missings = TRUE)
+
+```
+
+```{r}
+
+new_data <- spss_orphan_children_data %>% 
+  select(age, sex, grade, parentalStatus, missedParent, currentLiving, PRtotal, EMtotal, SAtotal, PGtotal, PLtotal, PWBtotal)
+    
+```
+
+```{r}
+
+Non_orphan = new_data[1 : 120, ]
+orphan = new_data[121 : 240, ]
+
+```
+
+### Summary
+
+The data has 12 variables and 240 observations. The main objective to collect these data from children to compare the psychological wellbeing of orphan and non-orphan children. The results show that orphan children have low psychological wellbeing to compare non-orphan children. The regression result show that age is not significant (P< 0.387), to the children psychological wellbeing. Parental status has significant (P < 0.0006), to children psychological wellbeing. we can conclude that age is not important factor for children psychological wellbeing. parent/family is important for children psychological wellbeing the child has family(non-orphan) high psychological wellbeing than children has not family(orphan). 
+
+
+###  Introduction 
+
+The source of these data is my thesis work SPSS data. This original data has 240 observations and 59 variables. The main variable I used from these data set age, sex, parental status (orphan = “no” or non-orphan = “yes”), current living status of the child, missed of parent, total score of Autonomy, Environmental Mastery, Personal Growth, Positive Relations with Others, purpose in Life and Self-acceptance sub scale score and total score of psychological wellbeing.
+Using pipes function filter only these 12 variables from 59 variables.
+
+##### Hypotheses 
+
+The first hypotheses age affects the level of children psychological wellbeing when the age of children increases as well psychological wellbeing also increase.
+The second hypotheses parental status affects the level of children psychological wellbeing. 
+
+
+### Exploratory Data Analysis
+#### Bar_plot of parental status  
+
+```{r}
+new_data %>%
+  ggplot() +
+  aes(x=parentalStatus, fill = sex) +
+  geom_bar()
+```
+
+In terms of sex distribution according to parental status the bar plot shows that in both orphan and non-orphan group almost equivalent numbers in male and female category.
+
+#### bar_plot of currentliving place of orphan
+
+```{r}
+ggplot(data = orphan) +
+  geom_bar(mapping = aes(x = currentLiving, fill = sex))
+```
+
+These bar plot show that relation between current living place of orphan children based on the above bar plot majority of orphan children they live with mothers on other side majority of orphans are paternal orphan next to parental orphan most of orphan live with relative  but these children may loss one of parents or both parent few orphan children they live in orphanage institutions and   with out of relative. 
+
+####  looking the distribution of PWBtotal by parentalStatus using geom_boxplot
+
+```{r}
+ggplot(data = new_data, mapping = aes(x = parentalStatus, y = PWBtotal)) +
+  geom_boxplot(fill = "blue", color = "red", outlier.shape = 23) + theme_grey()
+```
+
+The above box plot shows that the difference of psychological wellbeing between orphan and non-orphan. Based on this plot there is difference between orphan and non-orphan interims of psychological wellbeing non-orphan are score higher psychological wellbeing compared to orphan children. 
+
+### looking the distribution of PWBtotal by current living place
+
+```{r}
+ggplot(data = new_data) +
+  geom_boxplot(mapping = aes(x = reorder(currentLiving, PWBtotal, FUN = median), y = PWBtotal))
+```
+
+The above box plot show that most of children they live with father and mother are higher psychological wellbeing score compare to those children live with non-relative, with relative, in institution, with mother and with other. The child they live with non- relative they score the  worst psychological wellbeing compare to another group.
+
+#### looking the difference of pyschological wellbeing in terms of sex
+
+```{r}
+ggplot(data = new_data) +
+  geom_boxplot(mapping = aes(x = sex, y = PWBtotal))
+```
+
+The above box plot shows that male children are lower psychological wellbeing as compared to female children
+
+#### Frequency polygons plot 
+
+```{r}
+ggplot(data = new_data, mapping = aes(x = grade, colour = currentLiving)) +
+  geom_freqpoly(binwidth = 0.5)
+```
+
+Frequency polygons shows the relation between grade and living place of children.   All of children they live with father and mother attended grade 7 and 8.  Most of children they live with relative they attend in grade 6 and 7. These shows that parental status relation to the child academic levels.
+
+### Simple linear regression
+#### Create simple linear regression of psychological wellbeing on children age.
+
+```{r}
+model1 <- lm(PWBtotal ~ age, new_data)
+summary(model1)
+coef(model1)
+```
+
+To test the first hypothesis to creating simple liner regression psychological wellbeing as dependent variable and age as independent or explanatory variable. The output shows that F = 0.5442 (p< 0.461), age is non-significant indicating that we should clearly reject the null hypothesis that the variable age have no significant on psychological wellbeing of the children. In addition, the output also shows that R2 = 0.0022 and R2 adjusted = -0.0019. the correlation between age and psychological wellbeing is negative and very weak (r < -0.047). 
+
+#### Plot the linear regression
+
+```{r}
+new_data %>% 
+  ggplot() +
+  aes(y = PWBtotal, x = age) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+#### Tidy() puts returns the model summary in a neat data frame format
+
+```{r}
+tidy(model1)
+```
+
+#### To get the standardized coefficients (scale free)
+
+```{r}
+model1_std <- lm(scale(PWBtotal) ~ scale(age), data = new_data)
+summary(model1_std)
+```
+
+#### The slope of age on the correlation between psychological wellbeing of children and age
+
+```{r}
+cor(new_data$PWBtotal, new_data$age)
+```
+
+#### Residual diagnostics
+
+```{r}
+new_data %>% 
+  augment(lm(PWBtotal ~ age, data = .), .) %>% 
+  ggplot() +
+  aes(.resid) +
+  geom_histogram(bins = 5)
+```
+
+#### This plots shows the total variance of the outcome variable (summary of the blue lines)
+
+```{r}
+new_data %>% 
+  mutate(mean_PWBtotal = mean(PWBtotal)) %>% 
+  ggplot() +
+  aes(y = PWBtotal, x = age) +
+  geom_hline(aes(yintercept = mean_PWBtotal), size = 1.5) +
+  geom_segment(aes(xend = age, yend = mean_PWBtotal), linetype = "dashed", color = "blue", size = 1.2) +
+  geom_point(size = 3) +
+  ggtitle("Difference between the grand mean (baseline model)\nand the observed values", subtitle = "Total variance") +
+  theme(plot.title=element_text(size = 18, face = "bold"),
+        plot.subtitle=element_text(size = 16))
+```
+
+
+#### This plots shows the total variance of the outcome variable (summary of the blue lines)
+
+```{r}
+orphan %>% 
+  augment(lm(PWBtotal ~ age, data = .), .) %>% 
+  mutate(mean_PWBtotal = mean(PWBtotal)) %>% 
+  ggplot() +
+  aes(y = PWBtotal, x = age) +
+  geom_hline(aes(yintercept = mean_PWBtotal), size = 1.5) +
+  geom_smooth(method = "lm", se = FALSE, size = 1.5, color = "black") +
+  geom_segment(aes(xend = age, yend = mean_PWBtotal, y = .fitted), linetype = "dashed", color = "purple", size = 1.2) +
+  geom_point(size = 2) +
+  ggtitle("Difference between the model\nand the baseline model (grand mean)", subtitle = "Model improvement") +
+  theme(plot.title=element_text(size = 18, face = "bold"),
+        plot.subtitle=element_text(size = 16))
+```
+
+
+```{r}
+new_data %>% 
+  augment(lm(PWBtotal ~ age, data = .), .) %>% 
+  pull(.resid) %>% 
+  shapiro.test(.)
+```
+
+#### prediction
+
+```{r}
+predict(model1, data.frame("age" = 18))
+```
+
+
+#### simple linear regression total psychological wellbeing and grade 
+
+```{r}
+model2 <- lm(PWBtotal ~ grade, new_data)
+summary(model2)
+coef(model2)
+```
+#### Plot the linear regression
+
+```{r}
+ggplot(new_data, aes(x = grade, y = PWBtotal)) + 
+  geom_point(color = 'blue', alpha = 0.5) +
+  geom_smooth(method = 'lm', color = 'red')
+```
+
+##### Tidy puts returns the model summary in a neat data frame format
+```{r}
+tidy(model2)
+```
+
+### MULTIPLE REGRESSION
+
+```{r}
+lm1 <- lm(PWBtotal ~ age + parentalStatus , data = new_data)
+summary(lm1)
+tidy(lm1)
+```
+
+A multiple liner regression was calculated the predict psychological wellbeing based on their parental status and age. A significant regression equation was found (F(2, 237) = 6.191, p< 0.002), with an R – squared of  0.049. participants predicted psychological wellbeing is equal to 197.028 – 1,046(age) + 11.7754 (parental status), where parental status is coded as yes = non-orphan , No = orphan, and psychological wellbeing is measured Ryff Psychological Wellbeing scale. 
+The results also show that parental status is significantly related to child psychological wellbeing (P < 0.0006), and also parental status positively related to psychological wellbeing of children i.e when the child they have parents they also score high psychological wellbeing to compare may haven’t parents. age is non significant (p< 0.387) age has no effect on children psychological wellbeing.
+
+
+```{r}
+lm2 <- lm(PWBtotal ~ parentalStatus * age, data = new_data)
+summary(lm2)
+tidy(lm2)
+```
+
+```{r}
+lm3 <- lm(PWBtotal ~ parentalStatus : age, data = new_data)
+summary(lm3)
+tidy(lm3)
+```
+
+### To get the table in the console, use the type = "text" argument.
+
+```{r}
+stargazer(lm1, lm2, title = "Results", align = TRUE, type = "text")
+```
+
+
+```{r}
+
+```
+
+```{r}
+glance(lm1)
+glance(lm2)
+glance(lm3)
+```
+
+```{r}
+anova(lm1, lm2, lm3)
+```
+
+
+#### Fit logistic binomial regression
+```{r}
+orphan_fit <- glm(sex ~ parentalStatus, family = "binomial", data = new_data)
+summary(orphan_fit)
+tidy(orphan_fit)
+glance(orphan_fit)
+```
+
+
+### Conclusion 
+
+Based on exploratory data analysis the plot shows that there is a difference between orphan and non-orphan on psychological wellbeing.  Simple liner regression result show that age is non-significant (p< 0.4614). The multiple regression result show that parental status is significance (P < 0.0006), but age non-significant. Age and grade is not important factor for children psychological wellbeing. parent/family is important for children psychological wellbeing the child has family(non-orphan) high psychological wellbeing than children has not family(orphan).
